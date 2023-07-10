@@ -11,7 +11,6 @@ Based on walk-forward validation, both models were able to achieve ~70% precisio
 These results were acheived by walk-forward validation, or feeding the model new data and then validating it. I chose this design because updating the models would happen every day with new data. 
 
 # Features
-Please note that [code for all features is here.](dev_model.ipynb#feature-development)
 - `BigNewsDay`: This feature represents whether the current day is a "big news day", eg. NFP, CPI, PPI, CPE, etc. 
 - `Quarter`: The current quarter as of previous day (Q1,Q2,Q3,Q4) 
 - `Perf5Day`: Whether the previous day's close is higher than it was 5 days earlier.
