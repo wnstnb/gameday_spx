@@ -1,7 +1,7 @@
 # TL;DR on WTF
 - The purpose of this project is to predict whether the current day's close will be above the previous day's close (`Target`).
 - Two different ML models are used and their outputs are combined to produce a signal. True for a green day, False for a red day. 
-- When both models are in agreement, there's a 70% chance it's the right call.
+- When both models are in agreement, there's a 70% chance it's the right call (`precision`).
 - Both models utilize XGBoost, but one is a regressor and the other is a classifier.
 - Both models were validated using walk-forward validation. 
 
