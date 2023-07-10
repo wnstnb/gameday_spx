@@ -12,16 +12,16 @@ These results were acheived by walk-forward validation, or feeding the model new
 
 # Features
 Please note that [code for all features is here.](dev_model.ipynb#feature-development)
-`BigNewsDay`: This feature represents whether the current day is a "big news day", eg. NFP, CPI, PPI, CPE, etc. 
-`Quarter`: The current quarter as of previous day (Q1,Q2,Q3,Q4) 
-`Perf5Day`: Whether the previous day's close is higher than it was 5 days earlier.
-`Perf5Day_n1`: Previous value of 👆🏽
-`DaysGreen`: Consecutive number of days green (close > previous close), as of the previous day.
-`DaysRed`: Consecutive number of days red (close <= previous close), as of the previous day.
-`CurrentGap`: The current day's gap as a percentage of the previous close, or (Open - Previous close) / Previous Close
-`RangePct`: The previous day's range as a percent of the prior day's close.
-`RangePct_n1`: Previous value of 👆🏽
-`RangePct_n2`: Previous value of 👆🏽
-`OHLC4_VIX`: The previous day's OHLC4 of VIX.
-`OHLC4_VIX_n1`: Previous value of 👆🏽
-`OHLC4_VIX_n2`: Previous value of 👆🏽
+- `BigNewsDay`: This feature represents whether the current day is a "big news day", eg. NFP, CPI, PPI, CPE, etc. 
+- `Quarter`: The current quarter as of previous day (Q1,Q2,Q3,Q4) 
+- `Perf5Day`: Whether the previous day's close is higher than it was 5 days earlier.
+- `Perf5Day_n1`: Previous value of 👆🏽
+- `DaysGreen`: Consecutive number of days green (close > previous close), as of the previous day.
+- `DaysRed`: Consecutive number of days red (close <= previous close), as of the previous day.
+- `CurrentGap`: The current day's gap as a percentage of the previous close, or (Open - Previous close) / Previous Close
+- `RangePct`: The previous day's range as a percent of the prior day's close.
+- `RangePct_n1`: Previous value of 👆🏽
+- `RangePct_n2`: Previous value of 👆🏽
+- `OHLC4_VIX`: The previous day's OHLC4 of VIX.
+- `OHLC4_VIX_n1`: Previous value of 👆🏽
+- `OHLC4_VIX_n2`: Previous value of 👆🏽
