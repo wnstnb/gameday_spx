@@ -10,8 +10,13 @@ from typing import List
 import xgboost as xgb
 from tqdm import tqdm
 
-st.title('🎮 Gameday Model for $SPX')
+st.set_page_config(
+    page_title="Gameday Model for $SPX",
+    page_icon="🎮"
+)
 
+st.title('🎮 Gameday Model for $SPX')
+st.markdown('**PLEASE NOTE:** Model should be run at or after market open.')
 # @st.cache_data
 if st.button('RUN IT'):
     
