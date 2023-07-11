@@ -18,6 +18,11 @@ st.set_page_config(
 st.title('🎮 Gameday Model for $SPX')
 st.markdown('**PLEASE NOTE:** Model should be run at or after market open.')
 # @st.cache_data
+if st.button("CLEAR IT"):
+    # Clear values from *all* all in-memory and on-disk data caches:
+    # i.e. clear values from both square and cube
+    st.cache_data.clear()
+
 if st.button('RUN IT'):
     
     with st.spinner('Loading data...'):
