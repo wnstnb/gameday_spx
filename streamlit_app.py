@@ -13,11 +13,11 @@ from sklearn.linear_model import LinearRegression
 
 @st.cache_data
 def get_data():
-    f = open('settings.json')
-    j = json.load(f)
-    API_KEY_FRED = j["API_KEY_FRED"]
+    # f = open('settings.json')
+    # j = json.load(f)
+    # API_KEY_FRED = j["API_KEY_FRED"]
 
-    # API_KEY_FRED = st.secrets["API_KEY_FRED"]
+    API_KEY_FRED = st.secrets["API_KEY_FRED"]
     
     def parse_release_dates(release_id: str) -> List[str]:
         release_dates_url = f'https://api.stlouisfed.org/fred/release/dates?release_id={release_id}&realtime_start=2015-01-01&include_release_dates_with_no_data=true&api_key={API_KEY_FRED}'
