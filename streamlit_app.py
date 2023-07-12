@@ -385,7 +385,7 @@ if st.button('RUN IT'):
 
     df_ensemble = df_ensemble.dropna(subset=['ClfModelOut_n2'])
     df_ensemble['ClfModelOut_tf'] = df_ensemble['ClfModelOut'] > 0.5
-    df_probas = df_ensemble.groupby(['RegModelOut','ClfModelOut_tf'])[['ActualDirection','OpenDirection']].mean()
+    df_probas = df_ensemble.groupby(['RegModelOut','ClfModelOut_tf'])['ActualDirection'].mean()
 
     tab1.subheader('Preds and Probabilities')
     tab1.write(results)
