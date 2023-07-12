@@ -301,13 +301,13 @@ if st.button('RUN IT'):
         # Return the true and predicted values, and fitted model
         return df_results, model
 
-    with st.spinner("Training regressor..."):
+    with st.spinner("Training models..."):
         res, xgbr = walk_forward_validation(df_final.drop(columns=['Target_clf']).dropna(), 'Target', 100, 1)
-    st.success("✅ Regressor trained")
+    # st.success("✅ Regressor trained")
 
-    with st.spinner("Training classifier..."):
+    # with st.spinner("Training classifier..."):
         res1, xgbc = walk_forward_validation_clf(df_final.drop(columns=['Target']).dropna(), 'Target_clf', 100, 1)
-    st.success("✅ Classifier trained")
+    st.success("✅ Models trained")
 
     with st.spinner("Getting new prediction..."):
 
