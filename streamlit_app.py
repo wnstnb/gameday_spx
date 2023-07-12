@@ -274,7 +274,7 @@ if st.button('RUN IT'):
     def walk_forward_validation_clf(df, target_column, num_training_rows, num_periods):
         
         # Create an XGBRegressor model
-        model = xgb.XGBClassifier(n_estimators=20, random_state = 42)
+        model = xgb.XGBClassifier(n_estimators=10, random_state = 42)
         
         overall_results = []
         # Iterate over the rows in the DataFrame, one step at a time
