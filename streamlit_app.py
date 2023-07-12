@@ -11,7 +11,7 @@ import xgboost as xgb
 from tqdm import tqdm
 from sklearn.linear_model import LinearRegression
 
-@st.cache_data
+# @st.cache_data
 def get_data():
     # f = open('settings.json')
     # j = json.load(f)
@@ -302,11 +302,11 @@ if st.button('RUN IT'):
         return df_results, model
 
     with st.spinner("Training models..."):
-        res, xgbr = walk_forward_validation(df_final.drop(columns=['Target_clf']).dropna(), 'Target', 100, 1)
-    # st.success("✅ Regressor trained")
-
-    # with st.spinner("Training classifier..."):
-        res1, xgbc = walk_forward_validation_clf(df_final.drop(columns=['Target']).dropna(), 'Target_clf', 100, 1)
+        def train_models():
+            res, xgbr = walk_forward_validation(df_final.drop(columns=['Target_clf']).dropna(), 'Target', 100, 1)
+            res1, xgbc = walk_forward_validation_clf(df_final.drop(columns=['Target']).dropna(), 'Target_clf', 100, 1)
+            return res, xgbr, res1, xgbc
+        res, xgbr, res1, xgbc = train_models()
     st.success("✅ Models trained")
 
     with st.spinner("Getting new prediction..."):
