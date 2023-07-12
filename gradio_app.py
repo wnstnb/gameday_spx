@@ -9,7 +9,6 @@ from bs4 import BeautifulSoup
 from typing import List
 import xgboost as xgb
 from tqdm import tqdm
-from sklearn.linear_model import LinearRegression
 
 @st.cache_data
 def get_data():
@@ -243,8 +242,7 @@ if st.button('RUN IT'):
     def walk_forward_validation(df, target_column, num_training_rows, num_periods):
         
         # Create an XGBRegressor model
-        # model = xgb.XGBRegressor(n_estimators=100, objective='reg:squarederror', random_state = 42)
-        model = LinearRegression()
+        model = xgb.XGBRegressor(n_estimators=100, objective='reg:squarederror', random_state = 42)
         
         overall_results = []
         # Iterate over the rows in the DataFrame, one step at a time
@@ -274,7 +272,7 @@ if st.button('RUN IT'):
     def walk_forward_validation_clf(df, target_column, num_training_rows, num_periods):
         
         # Create an XGBRegressor model
-        model = xgb.XGBClassifier(n_estimators=20, random_state = 42)
+        model = xgb.XGBClassifier(n_estimators=100, random_state = 42)
         
         overall_results = []
         # Iterate over the rows in the DataFrame, one step at a time
@@ -302,11 +300,11 @@ if st.button('RUN IT'):
         return df_results, model
 
     with st.spinner("Training regressor..."):
-        res, xgbr = walk_forward_validation(df_final.drop(columns=['Target_clf']).dropna(), 'Target', 100, 1)
+        res, xgbr = walk_forward_validation(df_final.drop(columns=['Target_clf']), 'Target', 100, 1)
     st.success("✅ Regressor trained")
 
     with st.spinner("Training classifier..."):
-        res1, xgbc = walk_forward_validation_clf(df_final.drop(columns=['Target']).dropna(), 'Target_clf', 100, 1)
+        res1, xgbc = walk_forward_validation_clf(df_final.drop(columns=['Target']), 'Target_clf', 100, 1)
     st.success("✅ Classifier trained")
 
     with st.spinner("Getting new prediction..."):
