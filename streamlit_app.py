@@ -371,7 +371,7 @@ if st.button('RUN IT'):
     # st.subheader('New Prediction')
 
     df_ensemble = res[['Predicted']].merge(res1[['Predicted','True']], left_index=True, right_index=True)
-    df_ensemble = df_ensemble.merge(data[['PrevClose','High','Low','Close']], left_index=True, right_index=True)
+    df_ensemble = df_ensemble.merge(data[['PrevClose','Open','High','Low','Close']], left_index=True, right_index=True)
     df_ensemble['ActualDirection'] = df_ensemble['Close'] > df_ensemble['PrevClose']
     df_ensemble['OpenDirection'] = df_ensemble['Close'] > df_ensemble['Open']
     df_ensemble['ActualDirection'] = df_ensemble['ActualDirection'].shift(-1)
