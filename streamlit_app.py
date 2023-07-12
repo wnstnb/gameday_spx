@@ -373,9 +373,10 @@ if st.button('RUN IT'):
     df_ensemble = res[['Predicted']].merge(res1[['Predicted','True']], left_index=True, right_index=True)
     df_ensemble = df_ensemble.merge(data[['PrevClose','High','Low','Close']], left_index=True, right_index=True)
     df_ensemble['ActualDirection'] = df_ensemble['Close'] > df_ensemble['PrevClose']
+    df_ensemble['OpenDirection'] = df_ensemble['Close'] > df_ensemble['Open']
     df_ensemble['ActualDirection'] = df_ensemble['ActualDirection'].shift(-1)
 
-    df_ensemble.columns = ['RegModelOut','ClfModelOut','Target','PrevClose','High','Low','Close','ActualDirection']
+    df_ensemble.columns = ['RegModelOut','ClfModelOut','Target','PrevClose','High','Low','Close','ActualDirection','OpenDirection']
     df_ensemble['RegModelOut'] = df_ensemble['RegModelOut'] > 0
     df_ensemble['RegModelOut_n1'] = df_ensemble['RegModelOut'].shift(1)
     df_ensemble['ClfModelOut_n1'] = df_ensemble['ClfModelOut'].shift(1)
@@ -384,7 +385,7 @@ if st.button('RUN IT'):
 
     df_ensemble = df_ensemble.dropna(subset=['ClfModelOut_n2'])
     df_ensemble['ClfModelOut_tf'] = df_ensemble['ClfModelOut'] > 0.5
-    df_probas = df_ensemble.groupby(['RegModelOut','ClfModelOut_tf'])['ActualDirection'].mean()
+    df_probas = df_ensemble.groupby(['RegModelOut','ClfModelOut_tf'])[['ActualDirection','OpenDirection']].mean()
 
     tab1.subheader('Preds and Probabilities')
     tab1.write(results)
