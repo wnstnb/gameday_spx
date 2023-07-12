@@ -376,7 +376,7 @@ if st.button('RUN IT'):
     df_ensemble['OpenDirection'] = df_ensemble['Close'] > df_ensemble['Open']
     df_ensemble['ActualDirection'] = df_ensemble['ActualDirection'].shift(-1)
 
-    df_ensemble.columns = ['RegModelOut','ClfModelOut','Target','PrevClose','High','Low','Close','ActualDirection','OpenDirection']
+    df_ensemble.columns = ['RegModelOut','ClfModelOut','Target','PrevClose','Open','High','Low','Close','ActualDirection','OpenDirection']
     df_ensemble['RegModelOut'] = df_ensemble['RegModelOut'] > 0
     df_ensemble['RegModelOut_n1'] = df_ensemble['RegModelOut'].shift(1)
     df_ensemble['ClfModelOut_n1'] = df_ensemble['ClfModelOut'].shift(1)
