@@ -318,7 +318,7 @@ if st.button('RUN IT'):
         df = df.merge(for_merge, left_index=True, right_index=True)
         df = df.drop(columns=[target_column_regr])
         df = df[[
-            'CurrentGap','RegrModelOut','GapLevel',target_column_clf
+            'CurrentGap','RegrModelOut',target_column_clf
             ]]
         
         df[target_column_clf] = df[target_column_clf].astype(bool)
@@ -359,7 +359,7 @@ if st.button('RUN IT'):
         regr_pred = regr_pred > 0
         new_df = df.copy()
         new_df['RegrModelOut'] = regr_pred
-        clf_pred_proba = trained_clf_model.predict_proba(new_df[['CurrentGap','RegrModelOut','GapLevel']])[:,-1]
+        clf_pred_proba = trained_clf_model.predict_proba(new_df[['CurrentGap','RegrModelOut']])[:,-1]
         return clf_pred_proba
 
     with st.spinner("Training models..."):

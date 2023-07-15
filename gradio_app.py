@@ -10,7 +10,6 @@ from typing import List
 import xgboost as xgb
 from tqdm import tqdm
 
-@st.cache_data
 def get_data():
     f = open('settings.json')
     j = json.load(f)
