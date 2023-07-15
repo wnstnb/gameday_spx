@@ -243,7 +243,7 @@ if st.button('RUN IT'):
     st.success("✅ Historical data")
 
     def walk_forward_validation(df, target_column, num_training_rows, num_periods):
-        
+    
         # Create an XGBRegressor model
         # model = xgb.XGBRegressor(n_estimators=100, objective='reg:squarederror', random_state = 42)
         model = linear_model.LinearRegression()
@@ -309,7 +309,7 @@ if st.button('RUN IT'):
     def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_training_rows, num_periods):
 
         # Create run the regression model to get its target
-        res, _ = walk_forward_validation(df.drop(columns=[target_column_clf]).dropna(), target_column_regr, num_training_rows, num_periods)
+        res, model1 = walk_forward_validation(df.drop(columns=[target_column_clf]).dropna(), target_column_regr, num_training_rows, num_periods)
         
         # Merge the result df back on the df for feeding into the classifier
         for_merge = res[['Predicted']]
@@ -325,7 +325,7 @@ if st.button('RUN IT'):
         df['RegrModelOut'] = df['RegrModelOut'].astype(bool)
 
         # Create an XGBRegressor model
-        model = xgb.XGBClassifier(n_estimators=10, random_state = 42)
+        model2 = xgb.XGBClassifier(n_estimators=10, random_state = 42)
         # model = linear_model.LogisticRegression(max_iter=1500)
 
         
@@ -339,10 +339,10 @@ if st.button('RUN IT'):
             y_test = df[target_column_clf].iloc[i:i+num_periods]
             
             # Fit the model to the training data
-            model.fit(X_train, y_train)
+            model2.fit(X_train, y_train)
             
             # Make a prediction on the test data
-            predictions = model.predict_proba(X_test)[:,-1]
+            predictions = model2.predict_proba(X_test)[:,-1]
             
             # Create a DataFrame to store the true and predicted values
             result_df = pd.DataFrame({'True': y_test, 'Predicted': predictions}, index=y_test.index)
@@ -352,7 +352,7 @@ if st.button('RUN IT'):
         df_results = pd.concat(overall_results)
         # model.save_model('model_ensemble.bin')
         # Return the true and predicted values, and fitted model
-        return df_results, model
+        return df_results, model1, model2
 
     def seq_predict_proba(df, trained_reg_model, trained_clf_model):
         regr_pred = trained_reg_model.predict(df)
@@ -364,10 +364,9 @@ if st.button('RUN IT'):
 
     with st.spinner("Training models..."):
         def train_models():
-            res, xgbr = walk_forward_validation(df_final.drop(columns=['Target_clf']).dropna(), 'Target', 100, 1)
-            res1, seq2 = walk_forward_validation_seq(df_final.dropna(), 'Target_clf', 'Target', 100, 1)
-            return res, xgbr, res1, seq2
-        res, xgbr, res1, seq2 = train_models()
+            res1, xgbr, seq2 = walk_forward_validation_seq(df_final.dropna(), 'Target_clf', 'Target', 100, 1)
+            return res1, xgbr, seq2
+        res1, xgbr, seq2 = train_models()
     st.success("✅ Models trained")
 
     with st.spinner("Getting new prediction..."):
