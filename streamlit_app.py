@@ -325,7 +325,9 @@ if st.button('RUN IT'):
         df['RegrModelOut'] = df['RegrModelOut'].astype(bool)
 
         # Create an XGBRegressor model
+        print('starting clf train...')
         model2 = xgb.XGBClassifier(n_estimators=10, random_state = 42)
+        print('going...')
         # model = linear_model.LogisticRegression(max_iter=1500)
 
         
