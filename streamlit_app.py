@@ -1,4 +1,9 @@
 import streamlit as st
+import streamlit.config as config
+
+config.set_option("server.maxUploadSize", 1024)
+config.set_option("server.maxCachedMessageSize", 50)
+
 import pandas as pd
 import pandas_datareader as pdr
 import numpy as np
