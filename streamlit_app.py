@@ -45,13 +45,11 @@ def walk_forward_validation(df, target_column, num_training_rows, num_periods):
         return df_results, model
 
 # @st.cache_data
-def walk_forward_validation_seq(target_column_clf, target_column_regr, num_training_rows, num_periods):
+def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_training_rows, num_periods):
 
-    df = pd.read_csv('df_final.csv',index_col=0).dropna()
     # Create run the regression model to get its target
-
     res, model1 = walk_forward_validation(df.drop(columns=[target_column_clf]).dropna(), target_column_regr, num_training_rows, num_periods)
-    joblib.dump(model1, 'model1.bin')
+    # joblib.dump(model1, 'model1.bin')
 
     # Merge the result df back on the df for feeding into the classifier
     for_merge = res[['Predicted']]
@@ -93,16 +91,13 @@ def walk_forward_validation_seq(target_column_clf, target_column_regr, num_train
         overall_results.append(result_df)
 
     df_results = pd.concat(overall_results)
-    df_results = df_results.to_csv('df_results.csv',index=False)
     # model1.save_model('model_ensemble.bin')
-    joblib.dump(model2, 'model2.bin')
+    # joblib.dump(model2, 'model2.bin')
     # Return the true and predicted values, and fitted model
-    # return df_results, model1, model2
+    return df_results, model1, model2
 
 # @st.cache_data
-def seq_predict_proba(df):
-    trained_reg_model = joblib.load('model1.bin')
-    trained_clf_model = joblib.load('model2.bin')
+def seq_predict_proba(df, trained_reg_model, trained_clf_model):
     regr_pred = trained_reg_model.predict(df)
     regr_pred = regr_pred > 0
     new_df = df.copy()
@@ -112,6 +107,10 @@ def seq_predict_proba(df):
 
 # @st.cache_data
 def get_data():
+    # f = open('settings.json')
+    # j = json.load(f)
+    # API_KEY_FRED = j["API_KEY_FRED"]
+
     API_KEY_FRED = st.secrets["API_KEY_FRED"]
     
     def parse_release_dates(release_id: str) -> List[str]:
@@ -319,10 +318,7 @@ def get_data():
         'Target_clf'
         ]]
     df_final = df_final.dropna(subset=['Target','Target_clf','Perf5Day_n1'])
-    data.to_csv('data.csv', index=False) 
-    df_final.to_csv('df_final.csv', index=False) 
-    # final_row.to_csv('final_row.csv', index=False)
-    return final_row
+    return data, df_final, final_row
 
 st.set_page_config(
     page_title="Gameday Model for $SPX",
@@ -337,15 +333,17 @@ if st.button("🧹 Clear All"):
 
 if st.button('🤖 Run it'):
     with st.spinner('Loading data...'):
-        final_row = get_data()
+        data, df_final, final_row = get_data()
     st.success("✅ Historical data")
 
     with st.spinner("Training models..."):
-        walk_forward_validation_seq('Target_clf', 'Target', 100, 1)
+        def train_models():
+            res1, xgbr, seq2 = walk_forward_validation_seq(df_final.dropna(), 'Target_clf', 'Target', 100, 1)
+            return res1, xgbr, seq2
+        res1, xgbr, seq2 = train_models()
     st.success("✅ Models trained")
 
     with st.spinner("Getting new prediction..."):
-        data = pd.read_csv('data.csv', index_col=0)
 
         # Get last row
         new_pred = data.loc[final_row, ['BigNewsDay',
@@ -392,7 +390,7 @@ if st.button('🤖 Run it'):
     st.success("✅ Data for new prediction")
     tab1, tab2, tab3 = st.tabs(["🔮 Prediction", "✨ New Data", "🗄 Historical"])
 
-    seq_proba = seq_predict_proba(new_pred)
+    seq_proba = seq_predict_proba(new_pred, xgbr, seq2)
 
     results = pd.DataFrame(index=[
         'Proba'
@@ -401,7 +399,7 @@ if st.button('🤖 Run it'):
     results.columns = ['Outputs']
 
     # st.subheader('New Prediction')
-    res1 = pd.read_csv('df_results.csv', index_col = 0)
+
     df_probas = res1.groupby(pd.qcut(res1['Predicted'],5)).agg({'True':[np.mean,len,np.sum]})
 
     tab1.subheader('Preds and Probabilities')
@@ -412,7 +410,6 @@ if st.button('🤖 Run it'):
     tab2.write(new_pred)
 
     tab3.subheader('Historical Data')
-    df_final = pd.read_csv('df_final.csv',index_col=0)
     tab3.write(df_final)
 
 
