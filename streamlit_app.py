@@ -10,8 +10,102 @@ from typing import List
 import xgboost as xgb
 from tqdm import tqdm
 from sklearn import linear_model
+import joblib
 
-# @st.cache_data
+@st.cache_data
+def walk_forward_validation(df, target_column, num_training_rows, num_periods):
+    
+        # Create an XGBRegressor model
+        # model = xgb.XGBRegressor(n_estimators=100, objective='reg:squarederror', random_state = 42)
+        model = linear_model.LinearRegression()
+
+        overall_results = []
+        # Iterate over the rows in the DataFrame, one step at a time
+        for i in tqdm(range(num_training_rows, df.shape[0] - num_periods + 1)):
+            # Split the data into training and test sets
+            X_train = df.drop(target_column, axis=1).iloc[:i]
+            y_train = df[target_column].iloc[:i]
+            X_test = df.drop(target_column, axis=1).iloc[i:i+num_periods]
+            y_test = df[target_column].iloc[i:i+num_periods]
+            
+            # Fit the model to the training data
+            model.fit(X_train, y_train)
+            
+            # Make a prediction on the test data
+            predictions = model.predict(X_test)
+            
+            # Create a DataFrame to store the true and predicted values
+            result_df = pd.DataFrame({'True': y_test, 'Predicted': predictions}, index=y_test.index)
+            
+            overall_results.append(result_df)
+
+        df_results = pd.concat(overall_results)
+        # model.save_model('model_lr.bin')
+        # Return the true and predicted values, and fitted model
+        return df_results, model
+
+@st.cache_data
+def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_training_rows, num_periods):
+
+    # Create run the regression model to get its target
+    res, model1 = walk_forward_validation(df.drop(columns=[target_column_clf]).dropna(), target_column_regr, num_training_rows, num_periods)
+    joblib.dump(model1, 'model1.bin')
+
+    # Merge the result df back on the df for feeding into the classifier
+    for_merge = res[['Predicted']]
+    for_merge.columns = ['RegrModelOut']
+    for_merge['RegrModelOut'] = for_merge['RegrModelOut'] > 0
+    df = df.merge(for_merge, left_index=True, right_index=True)
+    df = df.drop(columns=[target_column_regr])
+    df = df[[
+        'CurrentGap','RegrModelOut',target_column_clf
+        ]]
+    
+    df[target_column_clf] = df[target_column_clf].astype(bool)
+    df['RegrModelOut'] = df['RegrModelOut'].astype(bool)
+
+    # Create an XGBRegressor model
+    print('starting clf train...')
+    model2 = xgb.XGBClassifier(n_estimators=10, random_state = 42)
+    print('going...')
+    # model = linear_model.LogisticRegression(max_iter=1500)
+    
+    overall_results = []
+    # Iterate over the rows in the DataFrame, one step at a time
+    for i in tqdm(range(num_training_rows, df.shape[0] - num_periods + 1)):
+        # Split the data into training and test sets
+        X_train = df.drop(target_column_clf, axis=1).iloc[:i]
+        y_train = df[target_column_clf].iloc[:i]
+        X_test = df.drop(target_column_clf, axis=1).iloc[i:i+num_periods]
+        y_test = df[target_column_clf].iloc[i:i+num_periods]
+        
+        # Fit the model to the training data
+        model2.fit(X_train, y_train)
+        
+        # Make a prediction on the test data
+        predictions = model2.predict_proba(X_test)[:,-1]
+        
+        # Create a DataFrame to store the true and predicted values
+        result_df = pd.DataFrame({'True': y_test, 'Predicted': predictions}, index=y_test.index)
+        
+        overall_results.append(result_df)
+
+    df_results = pd.concat(overall_results)
+    # model1.save_model('model_ensemble.bin')
+    joblib.dump(model2, 'model2.bin')
+    # Return the true and predicted values, and fitted model
+    return df_results, model1, model2
+
+@st.cache_data
+def seq_predict_proba(df, trained_reg_model, trained_clf_model):
+    regr_pred = trained_reg_model.predict(df)
+    regr_pred = regr_pred > 0
+    new_df = df.copy()
+    new_df['RegrModelOut'] = regr_pred
+    clf_pred_proba = trained_clf_model.predict_proba(new_df[['CurrentGap','RegrModelOut']])[:,-1]
+    return clf_pred_proba
+
+@st.cache_data
 def get_data():
     # f = open('settings.json')
     # j = json.load(f)
@@ -109,8 +203,8 @@ def get_data():
     vix = yf.Ticker('^VIX')
     spx = yf.Ticker('^GSPC')
 
-    prices_vix = vix.history(start='2020-01-01', interval='1d')
-    prices_spx = spx.history(start='2020-01-01', interval='1d')
+    prices_vix = vix.history(start='2018-07-01', interval='1d')
+    prices_spx = spx.history(start='2018-07-01', interval='1d')
     prices_spx['index'] = [str(x).split()[0] for x in prices_spx.index]
     prices_spx['index'] = pd.to_datetime(prices_spx['index']).dt.date
     prices_spx.index = prices_spx['index']
@@ -234,136 +328,15 @@ st.set_page_config(
 st.title('🎮 Gameday Model for $SPX')
 st.markdown('**PLEASE NOTE:** Model should be run at or after market open.')
 
-if st.button("CLEAR IT"):
+if st.button("🧹 Clear All"):
     st.cache_data.clear()
 
-if st.button('RUN IT'):
+if st.button('Get Data'):
     with st.spinner('Loading data...'):
         data, df_final, final_row = get_data()
     st.success("✅ Historical data")
 
-    def walk_forward_validation(df, target_column, num_training_rows, num_periods):
-    
-        # Create an XGBRegressor model
-        # model = xgb.XGBRegressor(n_estimators=100, objective='reg:squarederror', random_state = 42)
-        model = linear_model.LinearRegression()
-
-        overall_results = []
-        # Iterate over the rows in the DataFrame, one step at a time
-        for i in tqdm(range(num_training_rows, df.shape[0] - num_periods + 1)):
-            # Split the data into training and test sets
-            X_train = df.drop(target_column, axis=1).iloc[:i]
-            y_train = df[target_column].iloc[:i]
-            X_test = df.drop(target_column, axis=1).iloc[i:i+num_periods]
-            y_test = df[target_column].iloc[i:i+num_periods]
-            
-            # Fit the model to the training data
-            model.fit(X_train, y_train)
-            
-            # Make a prediction on the test data
-            predictions = model.predict(X_test)
-            
-            # Create a DataFrame to store the true and predicted values
-            result_df = pd.DataFrame({'True': y_test, 'Predicted': predictions}, index=y_test.index)
-            
-            overall_results.append(result_df)
-
-        df_results = pd.concat(overall_results)
-        # model.save_model('model_lr.bin')
-        # Return the true and predicted values, and fitted model
-        return df_results, model
-
-    def walk_forward_validation_clf(df, target_column, num_training_rows, num_periods):
-        
-        # Create an XGBRegressor model
-        model = xgb.XGBClassifier(n_estimators=10, random_state = 42)
-        # model = linear_model.LogisticRegression(max_iter=2000)
-        # model = ensemble.AdaBoostClassifier(n_estimators=10, random_state=42)
-
-        
-        overall_results = []
-        # Iterate over the rows in the DataFrame, one step at a time
-        for i in tqdm(range(num_training_rows, df.shape[0] - num_periods + 1)):
-            # Split the data into training and test sets
-            X_train = df.drop(target_column, axis=1).iloc[:i]
-            y_train = df[target_column].iloc[:i]
-            X_test = df.drop(target_column, axis=1).iloc[i:i+num_periods]
-            y_test = df[target_column].iloc[i:i+num_periods]
-            
-            # Fit the model to the training data
-            model.fit(X_train, y_train)
-            
-            # Make a prediction on the test data
-            predictions = model.predict_proba(X_test)[:,-1]
-            
-            # Create a DataFrame to store the true and predicted values
-            result_df = pd.DataFrame({'True': y_test, 'Predicted': predictions}, index=y_test.index)
-            
-            overall_results.append(result_df)
-
-        df_results = pd.concat(overall_results)
-        # model.save_model('model_clf_lr.bin')
-        # Return the true and predicted values, and fitted model
-        return df_results, model
-
-    def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_training_rows, num_periods):
-
-        # Create run the regression model to get its target
-        res, model1 = walk_forward_validation(df.drop(columns=[target_column_clf]).dropna(), target_column_regr, num_training_rows, num_periods)
-        
-        # Merge the result df back on the df for feeding into the classifier
-        for_merge = res[['Predicted']]
-        for_merge.columns = ['RegrModelOut']
-        for_merge['RegrModelOut'] = for_merge['RegrModelOut'] > 0
-        df = df.merge(for_merge, left_index=True, right_index=True)
-        df = df.drop(columns=[target_column_regr])
-        df = df[[
-            'CurrentGap','RegrModelOut',target_column_clf
-            ]]
-        
-        df[target_column_clf] = df[target_column_clf].astype(bool)
-        df['RegrModelOut'] = df['RegrModelOut'].astype(bool)
-
-        # Create an XGBRegressor model
-        print('starting clf train...')
-        model2 = xgb.XGBClassifier(n_estimators=10, random_state = 42)
-        print('going...')
-        # model = linear_model.LogisticRegression(max_iter=1500)
-
-        
-        overall_results = []
-        # Iterate over the rows in the DataFrame, one step at a time
-        for i in tqdm(range(num_training_rows, df.shape[0] - num_periods + 1)):
-            # Split the data into training and test sets
-            X_train = df.drop(target_column_clf, axis=1).iloc[:i]
-            y_train = df[target_column_clf].iloc[:i]
-            X_test = df.drop(target_column_clf, axis=1).iloc[i:i+num_periods]
-            y_test = df[target_column_clf].iloc[i:i+num_periods]
-            
-            # Fit the model to the training data
-            model2.fit(X_train, y_train)
-            
-            # Make a prediction on the test data
-            predictions = model2.predict_proba(X_test)[:,-1]
-            
-            # Create a DataFrame to store the true and predicted values
-            result_df = pd.DataFrame({'True': y_test, 'Predicted': predictions}, index=y_test.index)
-            
-            overall_results.append(result_df)
-
-        df_results = pd.concat(overall_results)
-        # model.save_model('model_ensemble.bin')
-        # Return the true and predicted values, and fitted model
-        return df_results, model1, model2
-
-    def seq_predict_proba(df, trained_reg_model, trained_clf_model):
-        regr_pred = trained_reg_model.predict(df)
-        regr_pred = regr_pred > 0
-        new_df = df.copy()
-        new_df['RegrModelOut'] = regr_pred
-        clf_pred_proba = trained_clf_model.predict_proba(new_df[['CurrentGap','RegrModelOut']])[:,-1]
-        return clf_pred_proba
-
+if st.button('🤖 Train Models'):
     with st.spinner("Training models..."):
         def train_models():
             res1, xgbr, seq2 = walk_forward_validation_seq(df_final.dropna(), 'Target_clf', 'Target', 100, 1)
@@ -371,6 +344,7 @@ if st.button('RUN IT'):
         res1, xgbr, seq2 = train_models()
     st.success("✅ Models trained")
 
+if st.button('✨ New Pred'):
     with st.spinner("Getting new prediction..."):
 
         # Get last row
