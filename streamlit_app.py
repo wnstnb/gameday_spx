@@ -45,9 +45,11 @@ def walk_forward_validation(df, target_column, num_training_rows, num_periods):
         return df_results, model
 
 # @st.cache_data
-def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_training_rows, num_periods):
+def walk_forward_validation_seq(target_column_clf, target_column_regr, num_training_rows, num_periods):
 
+    df = pd.read_csv('df_final.csv',index_col=0).dropna()
     # Create run the regression model to get its target
+
     res, model1 = walk_forward_validation(df.drop(columns=[target_column_clf]).dropna(), target_column_regr, num_training_rows, num_periods)
     joblib.dump(model1, 'model1.bin')
 
@@ -335,17 +337,15 @@ if st.button("🧹 Clear All"):
 
 if st.button('🤖 Run it'):
     with st.spinner('Loading data...'):
-        data, df_final, final_row = get_data()
+        final_row = get_data()
     st.success("✅ Historical data")
 
     with st.spinner("Training models..."):
-        def train_models():
-            res1, xgbr, seq2 = walk_forward_validation_seq(df_final.dropna(), 'Target_clf', 'Target', 100, 1)
-            return res1, xgbr, seq2
-        res1, xgbr, seq2 = train_models()
+        walk_forward_validation_seq('Target_clf', 'Target', 100, 1)
     st.success("✅ Models trained")
 
     with st.spinner("Getting new prediction..."):
+        data = pd.read_csv('data.csv', index_col=0)
 
         # Get last row
         new_pred = data.loc[final_row, ['BigNewsDay',
@@ -392,7 +392,7 @@ if st.button('🤖 Run it'):
     st.success("✅ Data for new prediction")
     tab1, tab2, tab3 = st.tabs(["🔮 Prediction", "✨ New Data", "🗄 Historical"])
 
-    seq_proba = seq_predict_proba(new_pred, xgbr, seq2)
+    seq_proba = seq_predict_proba(new_pred)
 
     results = pd.DataFrame(index=[
         'Proba'
@@ -401,7 +401,7 @@ if st.button('🤖 Run it'):
     results.columns = ['Outputs']
 
     # st.subheader('New Prediction')
-
+    res1 = pd.read_csv('df_results.csv', index_col = 0)
     df_probas = res1.groupby(pd.qcut(res1['Predicted'],5)).agg({'True':[np.mean,len,np.sum]})
 
     tab1.subheader('Preds and Probabilities')
@@ -412,6 +412,7 @@ if st.button('🤖 Run it'):
     tab2.write(new_pred)
 
     tab3.subheader('Historical Data')
+    df_final = pd.read_csv('df_final.csv',index_col=0)
     tab3.write(df_final)
 
 
