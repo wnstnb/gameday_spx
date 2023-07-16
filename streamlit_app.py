@@ -331,12 +331,11 @@ st.markdown('**PLEASE NOTE:** Model should be run at or after market open.')
 if st.button("🧹 Clear All"):
     st.cache_data.clear()
 
-if st.button('Get Data'):
+if st.button('🤖 Run it'):
     with st.spinner('Loading data...'):
         data, df_final, final_row = get_data()
     st.success("✅ Historical data")
 
-if st.button('🤖 Train Models'):
     with st.spinner("Training models..."):
         def train_models():
             res1, xgbr, seq2 = walk_forward_validation_seq(df_final.dropna(), 'Target_clf', 'Target', 100, 1)
@@ -344,7 +343,6 @@ if st.button('🤖 Train Models'):
         res1, xgbr, seq2 = train_models()
     st.success("✅ Models trained")
 
-if st.button('✨ New Pred'):
     with st.spinner("Getting new prediction..."):
 
         # Get last row
