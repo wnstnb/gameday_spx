@@ -49,7 +49,7 @@ def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_t
 
     # Create run the regression model to get its target
     res, model1 = walk_forward_validation(df.drop(columns=[target_column_clf]).dropna(), target_column_regr, num_training_rows, num_periods)
-    # joblib.dump(model1, 'model1.bin')
+    joblib.dump(model1, 'model1.bin')
 
     # Merge the result df back on the df for feeding into the classifier
     for_merge = res[['Predicted']]
@@ -91,13 +91,16 @@ def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_t
         overall_results.append(result_df)
 
     df_results = pd.concat(overall_results)
+    df_results = df_results.to_csv('df_results.csv',index=False)
     # model1.save_model('model_ensemble.bin')
-    # joblib.dump(model2, 'model2.bin')
+    joblib.dump(model2, 'model2.bin')
     # Return the true and predicted values, and fitted model
-    return df_results, model1, model2
+    # return df_results, model1, model2
 
 # @st.cache_data
-def seq_predict_proba(df, trained_reg_model, trained_clf_model):
+def seq_predict_proba(df):
+    trained_reg_model = joblib.load('model1.bin')
+    trained_clf_model = joblib.load('model2.bin')
     regr_pred = trained_reg_model.predict(df)
     regr_pred = regr_pred > 0
     new_df = df.copy()
@@ -107,10 +110,6 @@ def seq_predict_proba(df, trained_reg_model, trained_clf_model):
 
 # @st.cache_data
 def get_data():
-    # f = open('settings.json')
-    # j = json.load(f)
-    # API_KEY_FRED = j["API_KEY_FRED"]
-
     API_KEY_FRED = st.secrets["API_KEY_FRED"]
     
     def parse_release_dates(release_id: str) -> List[str]:
@@ -318,7 +317,10 @@ def get_data():
         'Target_clf'
         ]]
     df_final = df_final.dropna(subset=['Target','Target_clf','Perf5Day_n1'])
-    return data, df_final, final_row
+    data.to_csv('data.csv', index=False) 
+    df_final.to_csv('df_final.csv', index=False) 
+    # final_row.to_csv('final_row.csv', index=False)
+    return final_row
 
 st.set_page_config(
     page_title="Gameday Model for $SPX",
