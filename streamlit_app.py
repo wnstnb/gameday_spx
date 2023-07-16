@@ -15,34 +15,34 @@ import joblib
 # @st.cache_data
 def walk_forward_validation(df, target_column, num_training_rows, num_periods):
     
-        # Create an XGBRegressor model
-        # model = xgb.XGBRegressor(n_estimators=100, objective='reg:squarederror', random_state = 42)
-        model = linear_model.LinearRegression()
+    # Create an XGBRegressor model
+    # model = xgb.XGBRegressor(n_estimators=100, objective='reg:squarederror', random_state = 42)
+    model = linear_model.LinearRegression()
 
-        overall_results = []
-        # Iterate over the rows in the DataFrame, one step at a time
-        for i in tqdm(range(num_training_rows, df.shape[0] - num_periods + 1)):
-            # Split the data into training and test sets
-            X_train = df.drop(target_column, axis=1).iloc[:i]
-            y_train = df[target_column].iloc[:i]
-            X_test = df.drop(target_column, axis=1).iloc[i:i+num_periods]
-            y_test = df[target_column].iloc[i:i+num_periods]
-            
-            # Fit the model to the training data
-            model.fit(X_train, y_train)
-            
-            # Make a prediction on the test data
-            predictions = model.predict(X_test)
-            
-            # Create a DataFrame to store the true and predicted values
-            result_df = pd.DataFrame({'True': y_test, 'Predicted': predictions}, index=y_test.index)
-            
-            overall_results.append(result_df)
+    overall_results = []
+    # Iterate over the rows in the DataFrame, one step at a time
+    for i in tqdm(range(num_training_rows, df.shape[0] - num_periods + 1)):
+        # Split the data into training and test sets
+        X_train = df.drop(target_column, axis=1).iloc[:i]
+        y_train = df[target_column].iloc[:i]
+        X_test = df.drop(target_column, axis=1).iloc[i:i+num_periods]
+        y_test = df[target_column].iloc[i:i+num_periods]
+        
+        # Fit the model to the training data
+        model.fit(X_train, y_train)
+        
+        # Make a prediction on the test data
+        predictions = model.predict(X_test)
+        
+        # Create a DataFrame to store the true and predicted values
+        result_df = pd.DataFrame({'True': y_test, 'Predicted': predictions}, index=y_test.index)
+        
+        overall_results.append(result_df)
 
-        df_results = pd.concat(overall_results)
-        # model.save_model('model_lr.bin')
-        # Return the true and predicted values, and fitted model
-        return df_results, model
+    df_results = pd.concat(overall_results)
+    # model.save_model('model_lr.bin')
+    # Return the true and predicted values, and fitted model
+    return df_results, model
 
 # @st.cache_data
 def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_training_rows, num_periods):
@@ -401,7 +401,7 @@ if st.button('🤖 Run it'):
     # st.subheader('New Prediction')
 
     df_probas = res1.groupby(pd.qcut(res1['Predicted'],5)).agg({'True':[np.mean,len,np.sum]})
-
+    df_probas.columns = ['PctGreen','NumObs','TotalGreen']
     tab1.subheader('Preds and Probabilities')
     tab1.write(results)
     tab1.write(df_probas)
