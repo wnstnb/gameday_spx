@@ -385,17 +385,26 @@ if st.button('🤖 Run it'):
     tab1, tab2, tab3 = st.tabs(["🔮 Prediction", "✨ New Data", "🗄 Historical"])
 
     seq_proba = seq_predict_proba(new_pred, xgbr, seq2)
+    above_pct_green = res1.loc[res1['Predicted'] >= seq_proba, 'True'].mean()
+    len_above_pct_green = len(res1.loc[res1['Predicted'] >= seq_proba])
+    below_pct_red = 1 - res1.loc[res1['Predicted'] <= seq_proba, 'True'].mean()
+    len_below_pct_red = len(res1.loc[res1['Predicted'] <= seq_proba])
 
     results = pd.DataFrame(index=[
         'Proba'
-    ], data = [seq_proba])
+        f'NumGreen >= {seq_proba:.02f}',
+        f'PctGreen >= {seq_proba:.02f}',
+        f'NumRed <= {seq_proba:.02f}'
+        f'PctRed <= {seq_proba:.02f}'
+    ], data = [seq_proba, len_above_pct_green, above_pct_green, len_below_pct_red, below_pct_red])
 
     results.columns = ['Outputs']
 
     # st.subheader('New Prediction')
 
-    df_probas = res1.groupby(pd.qcut(res1['Predicted'],5)).agg({'True':[np.mean,len,np.sum]})
-
+    # df_probas = res1.groupby(pd.qcut(res1['Predicted'],5)).agg({'True':[np.mean,len,np.sum]})
+    df_probas = res1.groupby(pd.cut(res1['Predicted'],[-np.inf, 0.2, 0.4, 0.6, 0.8, np.inf])).agg({'True':[np.mean,len,np.sum]})
+    df_probas.columns = ['PctGreen','NumObs','NumGreen']
     tab1.subheader('Preds and Probabilities')
     tab1.write(results)
     tab1.write(df_probas)
