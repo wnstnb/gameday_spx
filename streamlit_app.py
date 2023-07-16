@@ -12,75 +12,66 @@ from tqdm import tqdm
 from sklearn import linear_model
 import joblib
 
-# @st.cache_data
 def walk_forward_validation(df, target_column, num_training_rows, num_periods):
-    
-    # Create an XGBRegressor model
-    # model = xgb.XGBRegressor(n_estimators=100, objective='reg:squarederror', random_state = 42)
     model = linear_model.LinearRegression()
 
     overall_results = []
-    # Iterate over the rows in the DataFrame, one step at a time
-    for i in tqdm(range(num_training_rows, df.shape[0] - num_periods + 1)):
-        # Split the data into training and test sets
-        X_train = df.drop(target_column, axis=1).iloc[:i]
-        y_train = df[target_column].iloc[:i]
-        X_test = df.drop(target_column, axis=1).iloc[i:i+num_periods]
-        y_test = df[target_column].iloc[i:i+num_periods]
+    X = df.drop(target_column, axis=1)
+    y = df[target_column]
+    
+    for i in range(num_training_rows, df.shape[0] - num_periods + 1):
+        X_train = X.iloc[:i]
+        y_train = y.iloc[:i]
+        X_test = X.iloc[i:i+num_periods]
+        y_test = y.iloc[i:i+num_periods]
         
-        # Fit the model to the training data
         model.fit(X_train, y_train)
-        
-        # Make a prediction on the test data
         predictions = model.predict(X_test)
         
-        # Create a DataFrame to store the true and predicted values
         result_df = pd.DataFrame({'True': y_test, 'Predicted': predictions}, index=y_test.index)
-        
         overall_results.append(result_df)
 
     df_results = pd.concat(overall_results)
-    # Return the true and predicted values, and fitted model
     return df_results, model
 
-# @st.cache_data
+
 def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_training_rows, num_periods):
+    model1 = linear_model.LinearRegression()
 
-    # Create run the regression model to get its target
-    res, model1 = walk_forward_validation(df.drop(columns=[target_column_clf]).dropna(), target_column_regr, num_training_rows, num_periods)
-
-    # Merge the result df back on the df for feeding into the classifier
-    for_merge = res[['Predicted']]
-    for_merge.columns = ['RegrModelOut']
-    for_merge['RegrModelOut'] = for_merge['RegrModelOut'] > 0
-    df = df.merge(for_merge, left_index=True, right_index=True)
-    df = df.drop(columns=[target_column_regr])
-    df = df[[
-        'CurrentGap','RegrModelOut',target_column_clf
-        ]]
-    
-    df[target_column_clf] = df[target_column_clf].astype(bool)
-    df['RegrModelOut'] = df['RegrModelOut'].astype(bool)
-
-    # Create an XGBRegressor model
-    print('starting clf train...')
-    model2 = xgb.XGBClassifier(n_estimators=10, random_state = 42)
-    print('going...')
-    # model = linear_model.LogisticRegression(max_iter=1500)
-    
     try:
+        print('training model1...')
+        res, model1 = walk_forward_validation(df.drop(columns=[target_column_clf]).dropna(), target_column_regr, num_training_rows, num_periods)
+
+        for_merge = res[['Predicted']]
+        for_merge.columns = ['RegrModelOut']
+        for_merge['RegrModelOut'] = for_merge['RegrModelOut'] > 0
+        df = df.merge(for_merge, left_index=True, right_index=True)
+        df = df.drop(columns=[target_column_regr])
+        df = df[['CurrentGap', 'RegrModelOut', target_column_clf]]
+        
+        df[target_column_clf] = df[target_column_clf].astype(bool)
+        df['RegrModelOut'] = df['RegrModelOut'].astype(bool)
+
+        print('training model2...')
+        model2 = xgb.XGBClassifier(n_estimators=10, random_state=42)
         overall_results = []
-        for i in tqdm(range(num_training_rows, df.shape[0] - num_periods + 1)):
-            X_train = df.drop(target_column_clf, axis=1).iloc[:i]
-            y_train = df[target_column_clf].iloc[:i]
-            X_test = df.drop(target_column_clf, axis=1).iloc[i:i+num_periods]
-            y_test = df[target_column_clf].iloc[i:i+num_periods]
 
+        X = df.drop(target_column_clf, axis=1)
+        y = df[target_column_clf]
+
+        print('starting model2 loop...')
+        for i in range(num_training_rows, df.shape[0] - num_periods + 1):
+            X_train = X.iloc[:i]
+            y_train = y.iloc[:i]
+            X_test = X.iloc[i:i+num_periods]
+            y_test = y.iloc[i:i+num_periods]
+
+            print(f'fitting {i}')
             model2.fit(X_train, y_train)
-
             predictions = model2.predict_proba(X_test)[:, -1]
 
             result_df = pd.DataFrame({'True': y_test, 'Predicted': predictions}, index=y_test.index)
+            print('appending...')
             overall_results.append(result_df)
 
         df_results = pd.concat(overall_results)
@@ -88,6 +79,7 @@ def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_t
 
     except Exception as e:
         print('Error occurred:', e)
+
 
 # @st.cache_data
 def seq_predict_proba(df, trained_reg_model, trained_clf_model):
