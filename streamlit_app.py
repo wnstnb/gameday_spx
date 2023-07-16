@@ -70,7 +70,7 @@ def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_t
             X_test = X.iloc[i:i+num_periods]
             y_test = y.iloc[i:i+num_periods]
 
-            print(f'fitting {i}')
+            # print(f'fitting {i}')
             model2.fit(X_train, y_train)
             predictions = model2.predict_proba(X_test)[:, -1]
 
