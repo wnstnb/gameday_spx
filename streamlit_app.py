@@ -1,8 +1,4 @@
 import streamlit as st
-import streamlit.config as config
-
-config.set_option("server.maxUploadSize", 1024)
-
 import pandas as pd
 import pandas_datareader as pdr
 import numpy as np
@@ -17,75 +13,85 @@ from sklearn import linear_model
 import joblib
 
 def walk_forward_validation(df, target_column, num_training_rows, num_periods):
+    
+    # Create an XGBRegressor model
+    # model = xgb.XGBRegressor(n_estimators=100, objective='reg:squarederror', random_state = 42)
     model = linear_model.LinearRegression()
 
     overall_results = []
-    X = df.drop(target_column, axis=1)
-    y = df[target_column]
-    
-    for i in range(num_training_rows, df.shape[0] - num_periods + 1):
-        X_train = X.iloc[:i]
-        y_train = y.iloc[:i]
-        X_test = X.iloc[i:i+num_periods]
-        y_test = y.iloc[i:i+num_periods]
+    # Iterate over the rows in the DataFrame, one step at a time
+    for i in tqdm(range(num_training_rows, df.shape[0] - num_periods + 1)):
+        # Split the data into training and test sets
+        X_train = df.drop(target_column, axis=1).iloc[:i]
+        y_train = df[target_column].iloc[:i]
+        X_test = df.drop(target_column, axis=1).iloc[i:i+num_periods]
+        y_test = df[target_column].iloc[i:i+num_periods]
         
+        # Fit the model to the training data
         model.fit(X_train, y_train)
+        
+        # Make a prediction on the test data
         predictions = model.predict(X_test)
         
+        # Create a DataFrame to store the true and predicted values
         result_df = pd.DataFrame({'True': y_test, 'Predicted': predictions}, index=y_test.index)
+        
         overall_results.append(result_df)
 
     df_results = pd.concat(overall_results)
+    # model.save_model('model_lr.bin')
+    # Return the true and predicted values, and fitted model
     return df_results, model
 
-
 def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_training_rows, num_periods):
-    model1 = linear_model.LinearRegression()
 
-    try:
-        print('training model1...')
-        res, model1 = walk_forward_validation(df.drop(columns=[target_column_clf]).dropna(), target_column_regr, num_training_rows, num_periods)
+    # Create run the regression model to get its target
+    res, model1 = walk_forward_validation(df.drop(columns=[target_column_clf]).dropna(), target_column_regr, num_training_rows, num_periods)
+    # joblib.dump(model1, 'model1.bin')
 
-        for_merge = res[['Predicted']]
-        for_merge.columns = ['RegrModelOut']
-        for_merge['RegrModelOut'] = for_merge['RegrModelOut'] > 0
-        df = df.merge(for_merge, left_index=True, right_index=True)
-        df = df.drop(columns=[target_column_regr])
-        df = df[['CurrentGap', 'RegrModelOut', target_column_clf]]
+    # Merge the result df back on the df for feeding into the classifier
+    for_merge = res[['Predicted']]
+    for_merge.columns = ['RegrModelOut']
+    for_merge['RegrModelOut'] = for_merge['RegrModelOut'] > 0
+    df = df.merge(for_merge, left_index=True, right_index=True)
+    df = df.drop(columns=[target_column_regr])
+    df = df[[
+        'CurrentGap','RegrModelOut',target_column_clf
+        ]]
+    
+    df[target_column_clf] = df[target_column_clf].astype(bool)
+    df['RegrModelOut'] = df['RegrModelOut'].astype(bool)
+
+    # Create an XGBRegressor model
+    model2 = xgb.XGBClassifier(n_estimators=10, random_state = 42)
+    # model = linear_model.LogisticRegression(max_iter=1500)
+    
+    overall_results = []
+    # Iterate over the rows in the DataFrame, one step at a time
+    for i in tqdm(range(num_training_rows, df.shape[0] - num_periods + 1)):
+        # Split the data into training and test sets
+        X_train = df.drop(target_column_clf, axis=1).iloc[:i]
+        y_train = df[target_column_clf].iloc[:i]
+        X_test = df.drop(target_column_clf, axis=1).iloc[i:i+num_periods]
+        y_test = df[target_column_clf].iloc[i:i+num_periods]
         
-        df[target_column_clf] = df[target_column_clf].astype(bool)
-        df['RegrModelOut'] = df['RegrModelOut'].astype(bool)
+        # Fit the model to the training data
+        model2.fit(X_train, y_train)
+        
+        # Make a prediction on the test data
+        predictions = model2.predict_proba(X_test)[:,-1]
+        
+        # Create a DataFrame to store the true and predicted values
+        result_df = pd.DataFrame({'True': y_test, 'Predicted': predictions}, index=y_test.index)
+        
+        overall_results.append(result_df)
 
-        print('training model2...')
-        model2 = xgb.XGBClassifier(n_estimators=10, random_state=42)
-        overall_results = []
+    df_results = pd.concat(overall_results)
+    # model1.save_model('model_ensemble.bin')
+    # joblib.dump(model2, 'model2.bin')
+    # Return the true and predicted values, and fitted model
+    return df_results, model1, model2
 
-        X = df.drop(target_column_clf, axis=1)
-        y = df[target_column_clf]
-
-        print('starting model2 loop...')
-        for i in range(num_training_rows, df.shape[0] - num_periods + 1):
-            X_train = X.iloc[:i]
-            y_train = y.iloc[:i]
-            X_test = X.iloc[i:i+num_periods]
-            y_test = y.iloc[i:i+num_periods]
-
-            # print(f'fitting {i}')
-            model2.fit(X_train, y_train)
-            predictions = model2.predict_proba(X_test)[:, -1]
-
-            result_df = pd.DataFrame({'True': y_test, 'Predicted': predictions}, index=y_test.index)
-            overall_results.append(result_df)
-
-        print('finishing...')
-        df_results = pd.concat(overall_results)
-        return df_results, model1, model2
-
-    except Exception as e:
-        print('Error occurred:', e)
-
-
-# @st.cache_data
 def seq_predict_proba(df, trained_reg_model, trained_clf_model):
     regr_pred = trained_reg_model.predict(df)
     regr_pred = regr_pred > 0
@@ -94,7 +100,6 @@ def seq_predict_proba(df, trained_reg_model, trained_clf_model):
     clf_pred_proba = trained_clf_model.predict_proba(new_df[['CurrentGap','RegrModelOut']])[:,-1]
     return clf_pred_proba
 
-# @st.cache_data
 def get_data():
     # f = open('settings.json')
     # j = json.load(f)
@@ -133,9 +138,19 @@ def get_data():
     ]
 
     for et in tqdm(econ_tickers, desc='getting econ tickers'):
+        # p = parse_release_dates_obs(et)
+        # df = pd.DataFrame(columns = ['ds',et], data = p)
         df = pdr.get_data_fred(et)
         df.index = df.index.rename('ds')
+        # df.index = pd.to_datetime(df.index.rename('ds')).dt.tz_localize(None)
+        # df['ds'] = pd.to_datetime(df['ds']).dt.tz_localize(None)
         econ_dfs[et] = df
+
+    # walcl = pd.DataFrame(columns = ['ds','WALCL'], data = p)
+    # walcl['ds'] = pd.to_datetime(walcl['ds']).dt.tz_localize(None)
+
+    # nfci = pd.DataFrame(columns = ['ds','NFCI'], data = p2)
+    # nfci['ds'] = pd.to_datetime(nfci['ds']).dt.tz_localize(None)
 
     release_ids = [
         "10", # "Consumer Price Index"
@@ -176,6 +191,8 @@ def get_data():
             releases[rid]['name']: 1
             })
         releases[rid]['df'].index = pd.DatetimeIndex(releases[rid]['df'].index)
+        # releases[rid]['df']['ds'] = pd.to_datetime(releases[rid]['df']['ds']).dt.tz_localize(None)
+        # releases[rid]['df'] = releases[rid]['df'].set_index('ds')
 
     vix = yf.Ticker('^VIX')
     spx = yf.Ticker('^GSPC')
@@ -279,6 +296,11 @@ def get_data():
         'Perf5Day_n1',
         'DaysGreen',
         'DaysRed',
+        # 'OHLC4_Trend',
+        # 'OHLC4_Trend_n1',
+        # 'OHLC4_Trend_n2',
+        # 'VIX5Day',
+        # 'VIX5Day_n1',
         'CurrentGap',
         'RangePct',
         'RangePct_n1',
@@ -306,14 +328,14 @@ if st.button("🧹 Clear All"):
 if st.button('🤖 Run it'):
     with st.spinner('Loading data...'):
         data, df_final, final_row = get_data()
-    st.success("✅ Historical data")
+    # st.success("✅ Historical data")
 
     with st.spinner("Training models..."):
         def train_models():
             res1, xgbr, seq2 = walk_forward_validation_seq(df_final.dropna(), 'Target_clf', 'Target', 100, 1)
             return res1, xgbr, seq2
         res1, xgbr, seq2 = train_models()
-    st.success("✅ Models trained")
+    # st.success("✅ Models trained")
 
     with st.spinner("Getting new prediction..."):
 
@@ -324,6 +346,11 @@ if st.button('🤖 Run it'):
             'Perf5Day_n1',    
             'DaysGreen',    
             'DaysRed',    
+            # 'OHLC4_Trend',    
+            # 'OHLC4_Trend_n1',    
+            # 'OHLC4_Trend_n2',    
+            # 'VIX5Day',
+            # 'VIX5Day_n1',
             'CurrentGap',
             'RangePct',
             'RangePct_n1',
@@ -333,6 +360,7 @@ if st.button('🤖 Run it'):
             'OHLC4_VIX_n2']]
 
         new_pred = pd.DataFrame(new_pred).T
+        # new_pred_show = pd.DataFrame(index=[new_pred.columns], columns=[new_pred.index], data=[[v] for v in new_pred.values])
 
         new_pred['BigNewsDay'] = new_pred['BigNewsDay'].astype(float)
         new_pred['Quarter'] = new_pred['Quarter'].astype(int)
@@ -340,6 +368,11 @@ if st.button('🤖 Run it'):
         new_pred['Perf5Day_n1'] = new_pred['Perf5Day_n1'].astype(bool)
         new_pred['DaysGreen'] = new_pred['DaysGreen'].astype(float)
         new_pred['DaysRed'] = new_pred['DaysRed'].astype(float)
+        # new_pred['OHLC4_Trend'] = new_pred['OHLC4_Trend'].astype(float)
+        # new_pred['OHLC4_Trend_n1'] = new_pred['OHLC4_Trend_n1'].astype(float)
+        # new_pred['OHLC4_Trend_n2'] = new_pred['OHLC4_Trend_n2'].astype(float)
+        # new_pred['VIX5Day'] = new_pred['VIX5Day'].astype(bool)
+        # new_pred['VIX5Day_n1'] = new_pred['VIX5Day_n1'].astype(bool)
         new_pred['CurrentGap'] = new_pred['CurrentGap'].astype(float)
         new_pred['RangePct'] = new_pred['RangePct'].astype(float)
         new_pred['RangePct_n1'] = new_pred['RangePct_n1'].astype(float)
@@ -348,7 +381,7 @@ if st.button('🤖 Run it'):
         new_pred['OHLC4_VIX_n1'] = new_pred['OHLC4_VIX_n1'].astype(float)
         new_pred['OHLC4_VIX_n2'] = new_pred['OHLC4_VIX_n2'].astype(float)
 
-    st.success("✅ Data for new prediction")
+    st.success("✅ All done!")
     tab1, tab2, tab3 = st.tabs(["🔮 Prediction", "✨ New Data", "🗄 Historical"])
 
     seq_proba = seq_predict_proba(new_pred, xgbr, seq2)
@@ -359,8 +392,10 @@ if st.button('🤖 Run it'):
 
     results.columns = ['Outputs']
 
+    # st.subheader('New Prediction')
+
     df_probas = res1.groupby(pd.qcut(res1['Predicted'],5)).agg({'True':[np.mean,len,np.sum]})
-    df_probas.columns = ['PctGreen','NumObs','TotalGreen']
+
     tab1.subheader('Preds and Probabilities')
     tab1.write(results)
     tab1.write(df_probas)
@@ -370,3 +405,16 @@ if st.button('🤖 Run it'):
 
     tab3.subheader('Historical Data')
     tab3.write(df_final)
+
+
+# The only variable you can play with as the other ones are historical
+# new_pred.loc[:,'CurrentGap'] = -0.01 / 100
+# new_pred.loc[:,'BigNewsDay'] = 0
+
+# st.subheader('Subset')
+# st.write(data.iloc[-1])
+
+# st.subheader('Number of pickups by hour')
+# hist_values = np.histogram(
+#     data[DATE_COLUMN].dt.hour, bins=24, range=(0,24))[0]
+# st.bar_chart(hist_values)
