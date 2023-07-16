@@ -75,9 +75,9 @@ def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_t
             predictions = model2.predict_proba(X_test)[:, -1]
 
             result_df = pd.DataFrame({'True': y_test, 'Predicted': predictions}, index=y_test.index)
-            print('appending...')
             overall_results.append(result_df)
 
+        print('finishing...')
         df_results = pd.concat(overall_results)
         return df_results, model1, model2
 
