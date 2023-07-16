@@ -12,7 +12,7 @@ from tqdm import tqdm
 from sklearn import linear_model
 import joblib
 
-@st.cache_data
+# @st.cache_data
 def walk_forward_validation(df, target_column, num_training_rows, num_periods):
     
         # Create an XGBRegressor model
@@ -44,12 +44,12 @@ def walk_forward_validation(df, target_column, num_training_rows, num_periods):
         # Return the true and predicted values, and fitted model
         return df_results, model
 
-@st.cache_data
+# @st.cache_data
 def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_training_rows, num_periods):
 
     # Create run the regression model to get its target
     res, model1 = walk_forward_validation(df.drop(columns=[target_column_clf]).dropna(), target_column_regr, num_training_rows, num_periods)
-    joblib.dump(model1, 'model1.bin')
+    # joblib.dump(model1, 'model1.bin')
 
     # Merge the result df back on the df for feeding into the classifier
     for_merge = res[['Predicted']]
@@ -92,11 +92,11 @@ def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_t
 
     df_results = pd.concat(overall_results)
     # model1.save_model('model_ensemble.bin')
-    joblib.dump(model2, 'model2.bin')
+    # joblib.dump(model2, 'model2.bin')
     # Return the true and predicted values, and fitted model
     return df_results, model1, model2
 
-@st.cache_data
+# @st.cache_data
 def seq_predict_proba(df, trained_reg_model, trained_clf_model):
     regr_pred = trained_reg_model.predict(df)
     regr_pred = regr_pred > 0
@@ -105,7 +105,7 @@ def seq_predict_proba(df, trained_reg_model, trained_clf_model):
     clf_pred_proba = trained_clf_model.predict_proba(new_df[['CurrentGap','RegrModelOut']])[:,-1]
     return clf_pred_proba
 
-@st.cache_data
+# @st.cache_data
 def get_data():
     # f = open('settings.json')
     # j = json.load(f)
