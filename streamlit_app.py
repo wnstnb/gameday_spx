@@ -392,11 +392,16 @@ if st.button('🤖 Run it'):
 
     results = pd.DataFrame(index=[
         'Proba'
-        f'NumGreen >= {seq_proba:.02f}',
-        f'PctGreen >= {seq_proba:.02f}',
-        f'NumRed <= {seq_proba:.02f}'
-        f'PctRed <= {seq_proba:.02f}'
-    ], data = [seq_proba, len_above_pct_green, above_pct_green, len_below_pct_red, below_pct_red])
+        # f'NumGreen >= {seq_proba:.02f}',
+        # f'PctGreen >= {seq_proba:.02f}',
+        # f'NumRed <= {seq_proba:.02f}'
+        # f'PctRed <= {seq_proba:.02f}'
+    ], data = [seq_proba 
+            #    len_above_pct_green, 
+            #    above_pct_green, 
+            #    len_below_pct_red, 
+            #    below_pct_red
+               ])
 
     results.columns = ['Outputs']
 
