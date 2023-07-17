@@ -385,10 +385,10 @@ if st.button('🤖 Run it'):
     tab1, tab2, tab3 = st.tabs(["🔮 Prediction", "✨ New Data", "🗄 Historical"])
 
     seq_proba = seq_predict_proba(new_pred, xgbr, seq2)
-    above_pct_green = res1.loc[res1['Predicted'] >= seq_proba, 'True'].mean()
-    len_above_pct_green = len(res1.loc[res1['Predicted'] >= seq_proba])
-    below_pct_red = 1 - res1.loc[res1['Predicted'] <= seq_proba, 'True'].mean()
-    len_below_pct_red = len(res1.loc[res1['Predicted'] <= seq_proba])
+    # above_pct_green = res1.loc[res1['Predicted'] >= seq_proba, 'True'].mean()
+    # len_above_pct_green = len(res1.loc[res1['Predicted'] >= seq_proba])
+    # below_pct_red = 1 - res1.loc[res1['Predicted'] <= seq_proba, 'True'].mean()
+    # len_below_pct_red = len(res1.loc[res1['Predicted'] <= seq_proba])
 
     results = pd.DataFrame(index=[
         'Proba'
