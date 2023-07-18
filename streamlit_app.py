@@ -20,7 +20,7 @@ def walk_forward_validation(df, target_column, num_training_rows, num_periods):
 
     overall_results = []
     # Iterate over the rows in the DataFrame, one step at a time
-    for i in tqdm(range(num_training_rows, df.shape[0] - num_periods + 1)):
+    for i in tqdm(range(num_training_rows, df.shape[0] - num_periods + 1),desc='LR Model'):
         # Split the data into training and test sets
         X_train = df.drop(target_column, axis=1).iloc[:i]
         y_train = df[target_column].iloc[:i]
@@ -68,7 +68,7 @@ def walk_forward_validation_seq(df, target_column_clf, target_column_regr, num_t
     
     overall_results = []
     # Iterate over the rows in the DataFrame, one step at a time
-    for i in tqdm(range(num_training_rows, df.shape[0] - num_periods + 1)):
+    for i in tqdm(range(num_training_rows, df.shape[0] - num_periods + 1),'CLF Model'):
         # Split the data into training and test sets
         X_train = df.drop(target_column_clf, axis=1).iloc[:i]
         y_train = df[target_column_clf].iloc[:i]
