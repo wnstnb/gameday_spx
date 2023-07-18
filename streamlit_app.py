@@ -400,7 +400,7 @@ if st.button('🤖 Run it'):
 
     if green_proba > red_proba:
         # If the day is predicted to be green, say so
-        score = f'🟩 {green_proba:.1%}'
+        score = f'[G] {green_proba:.1%}'
         # How many with this score?
         cond = (res1['Predicted'] <= (green_proba + 0.01)) & (res1['Predicted'] >= (green_proba - 0.01))
         num_obs = len(res1.loc[cond])
@@ -409,7 +409,7 @@ if st.button('🤖 Run it'):
 
     elif green_proba <= red_proba:
         # If the day is predicted to be green, say so
-        score = f'🟥 {red_proba:.1%}'
+        score = f'[R] {red_proba:.1%}'
         # How many with this score?
         cond = (res1['Predicted'] <= (red_proba + 0.01)) & (res1['Predicted'] >= (red_proba - 0.01))
         num_obs = len(res1.loc[cond])
