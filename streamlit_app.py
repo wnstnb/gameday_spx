@@ -390,18 +390,37 @@ if st.button('🤖 Run it'):
     # below_pct_red = 1 - res1.loc[res1['Predicted'] <= seq_proba, 'True'].mean()
     # len_below_pct_red = len(res1.loc[res1['Predicted'] <= seq_proba])
 
+    # Calc green and red probas
+    green_proba = seq_proba
+    red_proba = 1 - green_proba
+    score = None
+    num_obs = None
+    cond = None
+    historical_proba = None
+
+    if green_proba > red_proba:
+        # If the day is predicted to be green, say so
+        score = f'🟩 {green_proba:.1%}'
+        # How many with this score?
+        cond = (res1['Predicted'] <= (green_proba + 0.01)) & (res1['Predicted'] >= (green_proba - 0.01))
+        num_obs = len(res1.loc[cond])
+        # How often green?
+        historical_proba = res1.loc[cond, 'True'].mean()
+
+    elif green_proba <= red_proba:
+        # If the day is predicted to be green, say so
+        score = f'🟥 {red_proba:.1%}'
+        # How many with this score?
+        cond = (res1['Predicted'] <= (red_proba + 0.01)) & (res1['Predicted'] >= (red_proba - 0.01))
+        num_obs = len(res1.loc[cond])
+        # How often green?
+        historical_proba = 1 - res1.loc[cond, 'True'].mean()
+
     results = pd.DataFrame(index=[
-        'Proba'
-        # f'NumGreen >= {seq_proba:.02f}',
-        # f'PctGreen >= {seq_proba:.02f}',
-        # f'NumRed <= {seq_proba:.02f}'
-        # f'PctRed <= {seq_proba:.02f}'
-    ], data = [seq_proba 
-            #    len_above_pct_green, 
-            #    above_pct_green, 
-            #    len_below_pct_red, 
-            #    below_pct_red
-               ])
+        'Score'
+        'NumObsInRange',
+        'HistoricalProba'
+    ], data = [score, num_obs, historical_proba])
 
     results.columns = ['Outputs']
 
