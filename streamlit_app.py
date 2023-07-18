@@ -417,7 +417,7 @@ if st.button('🤖 Run it'):
         historical_proba = 1 - res1.loc[cond, 'True'].mean()
 
     results = pd.DataFrame(index=[
-        'Score'
+        'Score',
         'NumObsInRange',
         'HistoricalProba'
     ], data = [score, num_obs, historical_proba])
