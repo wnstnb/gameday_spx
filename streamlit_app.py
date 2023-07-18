@@ -101,11 +101,11 @@ def seq_predict_proba(df, trained_reg_model, trained_clf_model):
     return clf_pred_proba
 
 def get_data():
-    # f = open('settings.json')
-    # j = json.load(f)
-    # API_KEY_FRED = j["API_KEY_FRED"]
+    f = open('settings.json')
+    j = json.load(f)
+    API_KEY_FRED = j["API_KEY_FRED"]
 
-    API_KEY_FRED = st.secrets["API_KEY_FRED"]
+    # API_KEY_FRED = st.secrets["API_KEY_FRED"]
     
     def parse_release_dates(release_id: str) -> List[str]:
         release_dates_url = f'https://api.stlouisfed.org/fred/release/dates?release_id={release_id}&realtime_start=2015-01-01&include_release_dates_with_no_data=true&api_key={API_KEY_FRED}'
@@ -391,8 +391,9 @@ if st.button('🤖 Run it'):
     # len_below_pct_red = len(res1.loc[res1['Predicted'] <= seq_proba])
 
     # Calc green and red probas
-    green_proba = seq_proba
+    green_proba = seq_proba[0]
     red_proba = 1 - green_proba
+    stdev = 0.01
     score = None
     num_obs = None
     cond = None
@@ -400,27 +401,32 @@ if st.button('🤖 Run it'):
 
     if green_proba > red_proba:
         # If the day is predicted to be green, say so
-        score = f'🟩 {green_proba}'
+        score = green_proba
         # How many with this score?
-        cond = (res1['Predicted'] <= (green_proba + 0.01)) & (res1['Predicted'] >= (green_proba - 0.01))
+        cond = (res1['Predicted'] <= (green_proba + stdev)) & (res1['Predicted'] >= (green_proba - stdev))
         num_obs = len(res1.loc[cond])
         # How often green?
         historical_proba = res1.loc[cond, 'True'].mean()
+        # print(cond)
+
 
     elif green_proba <= red_proba:
         # If the day is predicted to be green, say so
-        score = f'🟥 {red_proba}'
+        score = red_proba
         # How many with this score?
         cond = (res1['Predicted'] <= (red_proba + 0.01)) & (res1['Predicted'] >= (red_proba - 0.01))
-        num_obs = len(res1.loc[cond])
+        num_obs = len(res1.loc[(res1['Predicted'] <= (red_proba + 0.01)) & (res1['Predicted'] >= (red_proba - 0.01))])
         # How often green?
         historical_proba = 1 - res1.loc[cond, 'True'].mean()
+        # print(cond)
+
+    text_cond = '🟩' if green_proba > red_proba else '🟥'
 
     results = pd.DataFrame(index=[
-        'Score',
-        'NumObsInRange',
-        'HistoricalProba'
-    ], data = [score, num_obs, historical_proba])
+        'ModelScore',
+        f'NumInRange ({score - stdev:.1%} - {score + stdev:.1%})',
+        'HistoricalRate'
+    ], data = [f'{text_cond} {score:.1%}', num_obs, f'{text_cond} {historical_proba:.1%}'])
 
     results.columns = ['Outputs']
 
