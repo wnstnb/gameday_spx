@@ -414,8 +414,8 @@ if st.button('🤖 Run it'):
         # If the day is predicted to be green, say so
         score = red_proba
         # How many with this score?
-        cond = (res1['Predicted'] <= (red_proba + 0.01)) & (res1['Predicted'] >= (red_proba - 0.01))
-        num_obs = len(res1.loc[(res1['Predicted'] <= (red_proba + 0.01)) & (res1['Predicted'] >= (red_proba - 0.01))])
+        cond = (res1['Predicted'] <= (red_proba + stdev)) & (res1['Predicted'] >= (red_proba - stdev))
+        num_obs = len(res1.loc[cond])
         # How often green?
         historical_proba = 1 - res1.loc[cond, 'True'].mean()
         # print(cond)
